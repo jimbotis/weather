@@ -12,9 +12,13 @@ local_tz = pytz.timezone ("Australia/Sydney")
 
 
 #=========Read file with the Weatherlink link================
-c = open('/home/pi/python/xmllink.txt','r')
-xmllink = c.read().replace('\n', '')
-c.close
+xmlfile = open('/home/pi/python/xmllink.txt','r')
+xmllink = xmlfile.read().replace('\n', '')
+xmlfile.close
+
+grafanaauthfile = open('/home/pi/python/grafanaauth.txt','r')
+grafanaauth = grafanaauthfile.read().replace('\n', '')
+grafanaauthfile.close
 
 #=======Download the file and save contents to a local file==============
 contents = urllib.request.urlopen(xmllink)
@@ -125,7 +129,7 @@ client.write_points(json_body)
 grafanalink = 'http://192.168.1.141:3000/render/d-solo/J4QoPgZgk/weather?refresh=5s&orgId=1&'
 panelstyle = '&theme=light&width=740&height=400&tz=UTC%2B10%3A00'
 opener = urllib.request.build_opener()
-opener.addheaders = [('Authorization', 'Bearer eyJrIjoiUGpUTkdKN2RCNGpIdEtPY3hQWWhQZGV1dkNvakU4Y1kiLCJuIjoiU2NyZWVuc2hvdCIsImlkIjoxfQ==')]
+opener.addheaders = [grafanaauth]
 urllib.request.install_opener(opener)
 
 #=====Download the last 1 day panels======
