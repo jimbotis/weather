@@ -152,7 +152,6 @@ client.write_points(json_body)
 grafanalink = 'http://192.168.1.141:3000/render/d-solo/J4QoPgZgk/weather?refresh=5s&orgId=1&'
 panelstyle = '&theme=light&width=740&height=400&tz=UTC%2B10%3A00'
 opener = urllib.request.build_opener()
-#opener.addheaders = [('Authorization', 'Bearer eyJrIjoiUGpUTkdKN2RCNGpIdEtPY3hQWWhQZGV1dkNvakU4Y1kiLCJuIjoiU2NyZWVuc2hvdCIsImlkIjoxfQ==')]
 opener.addheaders = [('Authorization', str(grafanaauth))]
 urllib.request.install_opener(opener)
 
