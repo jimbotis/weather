@@ -1,5 +1,6 @@
 import time
 import pytz
+import os
 import urllib.request
 from datetime import datetime
 from influxdb import InfluxDBClient
@@ -7,16 +8,37 @@ import json
 import xml.etree.ElementTree as ET
 
 #=========Init===========
+
+testmode = 0
+#testmode == 1 is test
+#testmode == 0 is normal
+
+
 local_tz = pytz.timezone ("Australia/Sydney")
 
+if testmode == 0:
+  xmlfileloc =  '/home/pi/python/weather.xml'
+  csvfileloc = '/home/pi/python/weather.csv'
+  webloc = '/home/pi/python/web/'
+  database = 'weather'
+  
+else: 
+  xmlfileloc = '/home/pi/pythont/weather.xml'
+  csvfileloc = '/home/pi/pythont/weather.csv'
+  webloc = '/home/pi/pythont/web/'
+  database = 'test'
 
 
 #=========Read file with the Weatherlink link================
-xmlfile = open('/home/pi/python/xmllink.txt','r')
-xmllink = xmlfile.read().replace('\n', '')
-xmlfile.close
-
-grafanaauthfile = open('/home/pi/python/grafanaauth.txt','r')
+if testmode == 0:
+  c = open('/home/pi/python/xmllink.txt','r')
+  xmllink = c.read().replace('\n', '')
+  c.close
+  grafanaauthfile = open('/home/pi/python/grafanaauth.txt','r')
+else:
+  xmllink = 'http://jimbotis.ddns.net/weather/weather.xml'
+  grafanaauthfile = open('/home/pi/pythont/grafanaauth.txt','r')
+  
 grafanaauth = grafanaauthfile.read().replace('\n', '')
 grafanaauthfile.close
 
@@ -25,15 +47,15 @@ contents = urllib.request.urlopen(xmllink)
 contentsbyte = contents.read()
 weatherxml = contentsbyte.decode("utf8")
 contents.close()
-
-d = open('/home/pi/python/weather.xml','w')
+ 
+d = open(xmlfileloc,'w')
 d.write(weatherxml)
 d.close
 
 root = ET.fromstring(weatherxml)
 readings = dict()
 
-e = open('/home/pi/python/weather.csv','w')
+e = open(csvfileloc,'w')
 
 #============Read the downloaded XML file and store in a dictionary.  Any values in imperial measurements are converted=============
 #============First level measurements in the XML structure====================
@@ -120,40 +142,43 @@ json_body = [
 ]
 #============Sends data to localhost, database 'weather'
 
-client = InfluxDBClient('127.0.0.1', 8086, 'root', 'root', 'weather')
+client = InfluxDBClient('127.0.0.1', 8086, 'root', 'root', database)
 
 client.write_points(json_body)
 
 
 #=========Downloads the Grafana panels========
+
 grafanalink = 'http://192.168.1.141:3000/render/d-solo/J4QoPgZgk/weather?refresh=5s&orgId=1&'
 panelstyle = '&theme=light&width=740&height=400&tz=UTC%2B10%3A00'
 opener = urllib.request.build_opener()
-opener.addheaders = [grafanaauth]
+#opener.addheaders = [('Authorization', 'Bearer eyJrIjoiUGpUTkdKN2RCNGpIdEtPY3hQWWhQZGV1dkNvakU4Y1kiLCJuIjoiU2NyZWVuc2hvdCIsImlkIjoxfQ==')]
+opener.addheaders = [('Authorization', str(grafanaauth))]
 urllib.request.install_opener(opener)
 
 #=====Download the last 1 day panels======
-urllib.request.urlretrieve(grafanalink + 'panelId=2' + panelstyle, '/home/pi/python/web/temp.png')
-urllib.request.urlretrieve(grafanalink + 'panelId=6' + panelstyle, '/home/pi/python/web/wind.png')
-urllib.request.urlretrieve(grafanalink + 'panelId=8' + panelstyle, '/home/pi/python/web/solar.png')
-urllib.request.urlretrieve(grafanalink + 'panelId=13' + panelstyle, '/home/pi/python/web/rain.png')
-urllib.request.urlretrieve(grafanalink + 'panelId=4' + panelstyle, '/home/pi/python/web/pressure.png')
-urllib.request.urlretrieve(grafanalink + 'panelId=11' + panelstyle, '/home/pi/python/web/humidity.png')
+
+urllib.request.urlretrieve(grafanalink + 'panelId=2' + panelstyle, webloc + 'temp.png')
+urllib.request.urlretrieve(grafanalink + 'panelId=6' + panelstyle, webloc + 'wind.png')
+urllib.request.urlretrieve(grafanalink + 'panelId=8' + panelstyle, webloc + 'solar.png')
+urllib.request.urlretrieve(grafanalink + 'panelId=13' + panelstyle, webloc + 'rain.png')
+urllib.request.urlretrieve(grafanalink + 'panelId=4' + panelstyle, webloc + 'pressure.png')
+urllib.request.urlretrieve(grafanalink + 'panelId=11' + panelstyle, webloc + 'humidity.png')
 
 #=====Download the last 7 day panels======
 
 grafanalink = 'http://192.168.1.141:3000/render/d-solo/J4QoPgZgk/weather?refresh=5s&orgId=1&&from=now-7d&to=now&'
-urllib.request.urlretrieve(grafanalink + 'panelId=2' + panelstyle, '/home/pi/python/web/7-temp.png')
-urllib.request.urlretrieve(grafanalink + 'panelId=6' + panelstyle, '/home/pi/python/web/7-wind.png')
-urllib.request.urlretrieve(grafanalink + 'panelId=8' + panelstyle, '/home/pi/python/web/7-solar.png')
-urllib.request.urlretrieve(grafanalink + 'panelId=13' + panelstyle, '/home/pi/python/web/7-rain.png')
-urllib.request.urlretrieve(grafanalink + 'panelId=4' + panelstyle, '/home/pi/python/web/7-pressure.png')
-urllib.request.urlretrieve(grafanalink + 'panelId=11' + panelstyle, '/home/pi/python/web/7-humidity.png')
+urllib.request.urlretrieve(grafanalink + 'panelId=2' + panelstyle, webloc + '7-temp.png')
+urllib.request.urlretrieve(grafanalink + 'panelId=6' + panelstyle, webloc + '7-wind.png')
+urllib.request.urlretrieve(grafanalink + 'panelId=8' + panelstyle, webloc + '7-solar.png')
+urllib.request.urlretrieve(grafanalink + 'panelId=13' + panelstyle, webloc + '7-rain.png')
+urllib.request.urlretrieve(grafanalink + 'panelId=4' + panelstyle, webloc + '7-pressure.png')
+urllib.request.urlretrieve(grafanalink + 'panelId=11' + panelstyle, webloc + '7-humidity.png')
 
 
 
 #========== Make the web page =============
-webout = open('/home/pi/python/web/index.html','w')
+webout = open(webloc + 'index.html','w')
 webout.write('<html><head><title>Weather Bulletin</title><link rel="stylesheet" type="text/css" href="weather.css">\n')
 webout.write('<link rel="apple-touch-icon-precomposed" sizes="57x57" href="images/apple-touch-icon-57x57.png" />\n')
 webout.write('<link rel="apple-touch-icon-precomposed" sizes="114x114" href="images/apple-touch-icon-114x114.png" />\n')
@@ -223,7 +248,7 @@ webout.close
 
 #====== Make 7 day webpage ======
 
-webout = open('/home/pi/python/web/index7.html','w')
+webout = open(webloc + 'index7.html','w')
 webout.write('<html><head><title>Weather Bulletin</title><link rel="stylesheet" type="text/css" href="weather.css">\n')
 webout.write('<link rel="apple-touch-icon-precomposed" sizes="57x57" href="images/apple-touch-icon-57x57.png" />\n')
 webout.write('<link rel="apple-touch-icon-precomposed" sizes="114x114" href="images/apple-touch-icon-114x114.png" />\n')
